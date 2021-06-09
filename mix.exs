@@ -57,8 +57,8 @@ defmodule Bytepacked.MixProject do
       {:nimble_totp, "~> 0.1"},
       {:swoosh, "~> 1.0"},
       {:bypass, "~> 2.1", only: :test},
-      {:mox, "~> 0.5", only: :test}
-
+      {:mox, "~> 0.5", only: :test},
+      {:phx_gen_auth, "~> 0.6", only: [:dev], runtime: false},
     ]
   end
 
