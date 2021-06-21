@@ -49,6 +49,7 @@ defmodule Bytepacked.MixProject do
       {:plug_cowboy, "~> 2.0"},
       {:eqrcode, "~> 0.1.7"},
       {:sentry, "~> 8.0"},
+      {:hackney, "~> 1.8"},
       {:cmark, "~> 0.9.0"},
       {:bcrypt_elixir, "~> 2.0"},
       # TODO: Remove override once goth is updated to latest finch
