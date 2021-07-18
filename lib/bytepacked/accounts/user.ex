@@ -10,6 +10,7 @@ defmodule Bytepacked.Accounts.User do
     field :password, :string, virtual: true
     field :hashed_password, :string
     field :confirmed_at, :naive_datetime
+    field :is_staff, :boolean, default: false
 
     timestamps()
   end
