@@ -15,6 +15,8 @@ config :bytepacked, Bytepacked.Repo,
   hostname: "localhost",
   pool: Ecto.Adapters.SQL.Sandbox
 
+config :bytepacked, Bytepacked.Mailer, adapter: Swoosh.Adapters.Test
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :bytepacked, BytepackedWeb.Endpoint,

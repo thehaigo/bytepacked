@@ -1,4 +1,6 @@
 defmodule Bytepacked.Accounts.UserNotifier do
+  import Swoosh.Email
+  alias Bytepacked.Mailer
   # For simplicity, this module simply logs messages to the terminal.
   # You should replace it by a proper email or notification tool, such as:
   #
@@ -6,9 +8,18 @@ defmodule Bytepacked.Accounts.UserNotifier do
   #   * Bamboo - https://hexdocs.pm/bamboo
   #
   defp deliver(to, body) do
-    require Logger
-    Logger.debug(body)
-    {:ok, %{to: to, body: body}}
+    case new()
+      |> to({to, to})
+      |> from({"Bytepacked Support", "noreply@bytepacked.com"})
+      |> subject("Bytepacked Support")
+      |> text_body(body)
+      |> Mailer.deliver
+    do
+      {:ok, _} ->
+        {:ok, %{to: to, body: body}}
+      :error ->
+        :error
+    end
   end
 
   @doc """

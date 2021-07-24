@@ -41,6 +41,7 @@ defmodule BytepackedWeb.Router do
     scope "/" do
       pipe_through :browser
       live_dashboard "/dashboard", metrics: BytepackedWeb.Telemetry
+      forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
   end
 
