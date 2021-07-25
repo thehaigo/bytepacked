@@ -1,0 +1,14 @@
+<div class="page-title-box">
+  <h4 class="page-title dashboard__title">Your Dashboard</h4>
+</div>
+
+<div class="dashboard__notifications">
+  <%= if @current_user.confirmed_at do %>
+  <% else %>
+    <div class="alert alert-info text-center" role="alert">
+      <p class="mb-1">In order to accept invitations you need to confirm your account first.</p>
+      <p class="mb-2">
+        If you don't receive an e-mail shortly, you can <a href="#" phx-click="confirmation_resend">resend the confirmation</a> instructions.
+      </p>
+    </div>
+  <% end %>

@@ -38,7 +38,7 @@ defmodule BytepackedWeb.Router do
   if Mix.env() in [:dev, :test] do
     import Phoenix.LiveDashboard.Router
 
-    scope "/" do
+    scope "dev/" do
       pipe_through :browser
       live_dashboard "/dashboard", metrics: BytepackedWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
@@ -66,6 +66,8 @@ defmodule BytepackedWeb.Router do
     get "/users/settings", UserSettingsController, :edit
     put "/users/settings", UserSettingsController, :update
     get "/users/settings/confirm_email/:token", UserSettingsController, :confirm_email
+
+    live "/dashboard", DashboardLive.Index, :index
   end
 
   scope "/", BytepackedWeb do
