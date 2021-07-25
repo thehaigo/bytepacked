@@ -14,7 +14,7 @@ defmodule BytepackedWeb.UserRegistrationControllerTest do
 
     test "redirects if already logged in", %{conn: conn} do
       conn = conn |> log_in_user(user_fixture()) |> get(Routes.user_registration_path(conn, :new))
-      assert redirected_to(conn) == "/"
+      assert redirected_to(conn) == "/dashboard"
     end
   end
 
@@ -29,14 +29,16 @@ defmodule BytepackedWeb.UserRegistrationControllerTest do
         })
 
       assert get_session(conn, :user_token)
-      assert redirected_to(conn) =~ "/"
+      assert redirected_to(conn) =~ "/dashboard"
 
       # Now do a logged in request and assert on the menu
-      conn = get(conn, "/")
+      conn = get(conn, "/dashboard")
       response = html_response(conn, 200)
       assert response =~ email
+      assert response =~ "Dashboard</a>"
       assert response =~ "Settings</a>"
       assert response =~ "Log out</a>"
+      assert response =~ "In order to accept invitations you need to confirm your account first."
     end
 
     test "render errors for invalid data", %{conn: conn} do
