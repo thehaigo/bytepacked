@@ -60,6 +60,7 @@ defmodule Bytepacked.MixProject do
       {:bypass, "~> 2.1", only: :test},
       {:mox, "~> 0.5", only: :test},
       {:phx_gen_auth, "~> 0.6", only: [:dev], runtime: false},
+      {:mix_test_watch, "~> 1.0", only: :dev},
     ]
   end
 
