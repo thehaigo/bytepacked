@@ -46,6 +46,7 @@ defmodule BytepackedWeb do
     quote do
       use Phoenix.LiveView,
         layout: {BytepackedWeb.LayoutView, "live.html"}
+        alias BytepackedWeb.MountHelpers
 
       unquote(view_helpers())
     end
@@ -54,6 +55,7 @@ defmodule BytepackedWeb do
   def live_component do
     quote do
       use Phoenix.LiveComponent
+      alias BytepackedWeb.MountHelpers
 
       unquote(view_helpers())
     end
