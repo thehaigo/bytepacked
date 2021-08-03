@@ -1,7 +1,7 @@
 defmodule BytepackedWeb.UserSessionController do
   use BytepackedWeb, :controller
 
-  alias Bytepacked.Accounts
+  alias Bytepacked.{Accounts, AuditLog}
   alias BytepackedWeb.UserAuth
 
   def new(conn, _params) do
@@ -12,6 +12,8 @@ defmodule BytepackedWeb.UserSessionController do
     %{"email" => email, "password" => password} = user_params
 
     if user = Accounts.get_user_by_email_and_password(email, password) do
+      audit_context = %{conn.assigns.audit_context | user: user}
+      AuditLog.audit!(audit_context, "accounts.login", %{email: email})
       UserAuth.log_in_user(conn, user, user_params)
     else
       render(conn, "new.html", error_message: "Invalid email or password")

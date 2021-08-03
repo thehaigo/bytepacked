@@ -24,6 +24,7 @@ defmodule Bytepacked.DataCase do
       import Ecto.Changeset
       import Ecto.Query
       import Bytepacked.DataCase
+      import Bytepacked.AuditLog, only: [system: 0]
     end
   end
 

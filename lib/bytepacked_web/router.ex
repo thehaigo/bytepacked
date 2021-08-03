@@ -2,6 +2,7 @@ defmodule BytepackedWeb.Router do
   use BytepackedWeb, :router
 
   import BytepackedWeb.UserAuth
+  import BytepackedWeb.RequestContext
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -11,6 +12,7 @@ defmodule BytepackedWeb.Router do
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug :fetch_current_user
+    plug :put_audit_context
   end
 
   pipeline :api do
@@ -38,7 +40,7 @@ defmodule BytepackedWeb.Router do
   if Mix.env() in [:dev, :test] do
     import Phoenix.LiveDashboard.Router
 
-    scope "dev/" do
+    scope "/dev" do
       pipe_through :browser
       live_dashboard "/dashboard", metrics: BytepackedWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview

@@ -7,6 +7,7 @@ defmodule Bytepacked.AccountsFixtures do
   def unique_user_email, do: "user#{System.unique_integer()}@example.com"
   def valid_user_password, do: "hello world!"
 
+  @spec valid_user_attributes(any) :: any
   def valid_user_attributes(attrs \\ %{}) do
     Enum.into(attrs, %{
       email: unique_user_email(),
@@ -18,7 +19,7 @@ defmodule Bytepacked.AccountsFixtures do
     {:ok, user} =
       attrs
       |> valid_user_attributes()
-      |> Bytepacked.Accounts.register_user()
+      |> Bytepacked.Accounts.register_user(Bytepacked.AuditLog.system())
 
     user
   end

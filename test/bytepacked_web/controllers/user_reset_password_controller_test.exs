@@ -1,7 +1,7 @@
 defmodule BytepackedWeb.UserResetPasswordControllerTest do
   use BytepackedWeb.ConnCase, async: true
 
-  alias Bytepacked.Accounts
+  alias Bytepacked.{Accounts, AuditLog}
   alias Bytepacked.Repo
   import Bytepacked.AccountsFixtures
 
@@ -46,7 +46,7 @@ defmodule BytepackedWeb.UserResetPasswordControllerTest do
     setup %{user: user} do
       token =
         extract_user_token(fn url ->
-          Accounts.deliver_user_reset_password_instructions(user, url)
+          Accounts.deliver_user_reset_password_instructions(user, url, AuditLog.system())
         end)
 
       %{token: token}
@@ -59,7 +59,7 @@ defmodule BytepackedWeb.UserResetPasswordControllerTest do
 
     test "does not render reset password with invalid token", %{conn: conn} do
       conn = get(conn, Routes.user_reset_password_path(conn, :edit, "oops"))
-      assert redirected_to(conn) == "/"
+      assert redirected_to(conn) == "/users/log_in"
       assert get_flash(conn, :error) =~ "Reset password link is invalid or it has expired"
     end
   end
@@ -68,7 +68,7 @@ defmodule BytepackedWeb.UserResetPasswordControllerTest do
     setup %{user: user} do
       token =
         extract_user_token(fn url ->
-          Accounts.deliver_user_reset_password_instructions(user, url)
+          Accounts.deliver_user_reset_password_instructions(user, url, AuditLog.system())
         end)
 
       %{token: token}
@@ -87,6 +87,11 @@ defmodule BytepackedWeb.UserResetPasswordControllerTest do
       refute get_session(conn, :user_token)
       assert get_flash(conn, :info) =~ "Password reset successfully"
       assert Accounts.get_user_by_email_and_password(user.email, "new valid password")
+
+      [audit_log] = AuditLog.list_by_user(user, action: "accounts.reset_password.finish")
+      assert audit_log.user_email == user.email
+      assert audit_log.user_id == user.id
+      assert audit_log.params == %{"user_id" => user.id}
     end
 
     test "does not reset password on invalid data", %{conn: conn, token: token} do
@@ -106,7 +111,7 @@ defmodule BytepackedWeb.UserResetPasswordControllerTest do
 
     test "does not reset password with invalid token", %{conn: conn} do
       conn = put(conn, Routes.user_reset_password_path(conn, :update, "oops"))
-      assert redirected_to(conn) == "/"
+      assert redirected_to(conn) == "/users/log_in"
       assert get_flash(conn, :error) =~ "Reset password link is invalid or it has expired"
     end
   end

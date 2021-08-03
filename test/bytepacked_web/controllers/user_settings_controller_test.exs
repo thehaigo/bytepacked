@@ -1,7 +1,7 @@
 defmodule BytepackedWeb.UserSettingsControllerTest do
   use BytepackedWeb.ConnCase, async: true
 
-  alias Bytepacked.Accounts
+  alias Bytepacked.{Accounts, AuditLog}
   import Bytepacked.AccountsFixtures
 
   setup :register_and_log_in_user
@@ -95,7 +95,7 @@ defmodule BytepackedWeb.UserSettingsControllerTest do
 
       token =
         extract_user_token(fn url ->
-          Accounts.deliver_update_email_instructions(%{user | email: email}, user.email, url)
+          Accounts.deliver_update_email_instructions(%{user | email: email}, user.email, url, AuditLog.system())
         end)
 
       %{token: token, email: email}

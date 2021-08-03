@@ -4,7 +4,7 @@ defmodule Bytepacked.Accounts do
   """
 
   import Ecto.Query, warn: false
-  alias Bytepacked.Repo
+  alias Bytepacked.{AuditLog, Repo}
   alias Bytepacked.Accounts.{User, UserToken, UserNotifier}
 
   ## Database getters
@@ -73,10 +73,19 @@ defmodule Bytepacked.Accounts do
       {:error, %Ecto.Changeset{}}
 
   """
-  def register_user(attrs) do
-    %User{}
-    |> User.registration_changeset(attrs)
-    |> Repo.insert()
+  def register_user(attrs, audit_context) do
+    user_changeset = User.registration_changeset(%User{}, attrs)
+
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert(:user, user_changeset)
+    |> AuditLog.multi(audit_context, "accounts.register_user", fn context, %{user: user} ->
+      %{context | user: user, params: %{email: user.email}}
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{user: user}} -> {:ok, user}
+      {:error, :user, changeset, _} -> {:error, changeset}
+    end
   end
 
   @doc """
@@ -133,24 +142,28 @@ defmodule Bytepacked.Accounts do
   If the token matches, the user email is updated and the token is deleted.
   The confirmed_at date is also updated to the current time.
   """
-  def update_user_email(user, token) do
+  def update_user_email(user, token, audit_context) do
     context = "change:#{user.email}"
 
     with {:ok, query} <- UserToken.verify_change_email_token_query(token, context),
          %UserToken{sent_to: email} <- Repo.one(query),
-         {:ok, _} <- Repo.transaction(user_email_multi(user, email, context)) do
+         {:ok, _} <- Repo.transaction(user_email_multi(user, email, context, audit_context)) do
       :ok
     else
       _ -> :error
     end
   end
 
-  defp user_email_multi(user, email, context) do
+  defp user_email_multi(user, email, context, audit_context) do
     changeset = user |> User.email_changeset(%{email: email}) |> User.confirm_changeset()
 
     Ecto.Multi.new()
     |> Ecto.Multi.update(:user, changeset)
     |> Ecto.Multi.delete_all(:tokens, UserToken.user_and_contexts_query(user, [context]))
+    |> AuditLog.multi(audit_context, "accounts.update_email.finish", %{
+      user_id: user.id,
+      email: email
+    })
   end
 
   @doc """
@@ -162,11 +175,23 @@ defmodule Bytepacked.Accounts do
       {:ok, %{to: ..., body: ...}}
 
   """
-  def deliver_update_email_instructions(%User{} = user, current_email, update_email_url_fun)
+  def deliver_update_email_instructions(
+        %User{} = user,
+        current_email,
+        update_email_url_fun,
+        audit_context
+      )
       when is_function(update_email_url_fun, 1) do
     {encoded_token, user_token} = UserToken.build_email_token(user, "change:#{current_email}")
 
-    Repo.insert!(user_token)
+    {:ok, _} =
+      Ecto.Multi.new()
+      |> AuditLog.multi(audit_context, "accounts.update_email.init", %{
+        user_id: user.id,
+        email: user.email
+      })
+      |> Ecto.Multi.insert(:user_token, user_token)
+      |> Repo.transaction()
     UserNotifier.deliver_update_email_instructions(user, update_email_url_fun.(encoded_token))
   end
 
@@ -195,7 +220,7 @@ defmodule Bytepacked.Accounts do
       {:error, %Ecto.Changeset{}}
 
   """
-  def update_user_password(user, password, attrs) do
+  def update_user_password(user, password, attrs, audit_context) do
     changeset =
       user
       |> User.password_changeset(attrs)
@@ -204,6 +229,7 @@ defmodule Bytepacked.Accounts do
     Ecto.Multi.new()
     |> Ecto.Multi.update(:user, changeset)
     |> Ecto.Multi.delete_all(:tokens, UserToken.user_and_contexts_query(user, :all))
+    |> AuditLog.multi(audit_context, "accounts.update_password", %{user_id: user.id})
     |> Repo.transaction()
     |> case do
       {:ok, %{user: user}} -> {:ok, user}
@@ -296,10 +322,15 @@ defmodule Bytepacked.Accounts do
       {:ok, %{to: ..., body: ...}}
 
   """
-  def deliver_user_reset_password_instructions(%User{} = user, reset_password_url_fun)
+  def deliver_user_reset_password_instructions(%User{} = user, reset_password_url_fun, audit_context)
       when is_function(reset_password_url_fun, 1) do
     {encoded_token, user_token} = UserToken.build_email_token(user, "reset_password")
-    Repo.insert!(user_token)
+    {:ok, _} =
+      Ecto.Multi.new()
+      |> AuditLog.multi(audit_context, "accounts.reset_password.init", %{user_id: user.id})
+      |> Ecto.Multi.insert(:user_token, user_token)
+      |> Repo.transaction()
+
     UserNotifier.deliver_reset_password_instructions(user, reset_password_url_fun.(encoded_token))
   end
 
@@ -336,10 +367,11 @@ defmodule Bytepacked.Accounts do
       {:error, %Ecto.Changeset{}}
 
   """
-  def reset_user_password(user, attrs) do
+  def reset_user_password(user, attrs, audit_context) do
     Ecto.Multi.new()
     |> Ecto.Multi.update(:user, User.password_changeset(user, attrs))
     |> Ecto.Multi.delete_all(:tokens, UserToken.user_and_contexts_query(user, :all))
+    |> AuditLog.multi(audit_context, "accounts.reset_password.finish", %{user_id: user.id})
     |> Repo.transaction()
     |> case do
       {:ok, %{user: user}} -> {:ok, user}

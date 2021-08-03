@@ -19,7 +19,8 @@ defmodule BytepackedWeb.UserSettingsController do
         Accounts.deliver_update_email_instructions(
           applied_user,
           user.email,
-          &Routes.user_settings_url(conn, :confirm_email, &1)
+          &Routes.user_settings_url(conn, :confirm_email, &1),
+          conn.assigns.audit_context
         )
 
         conn
@@ -38,7 +39,7 @@ defmodule BytepackedWeb.UserSettingsController do
     %{"current_password" => password, "user" => user_params} = params
     user = conn.assigns.current_user
 
-    case Accounts.update_user_password(user, password, user_params) do
+    case Accounts.update_user_password(user, password, user_params, conn.assigns.audit_context) do
       {:ok, user} ->
         conn
         |> put_flash(:info, "Password updated successfully.")
@@ -51,7 +52,7 @@ defmodule BytepackedWeb.UserSettingsController do
   end
 
   def confirm_email(conn, %{"token" => token}) do
-    case Accounts.update_user_email(conn.assigns.current_user, token) do
+    case Accounts.update_user_email(conn.assigns.current_user, token, conn.assigns.audit_context) do
       :ok ->
         conn
         |> put_flash(:info, "Email changed successfully.")

@@ -5,6 +5,7 @@ defmodule BytepackedWeb.UserResetPasswordController do
 
   plug :get_user_by_reset_password_token when action in [:edit, :update]
 
+  @spec new(Plug.Conn.t(), any) :: Plug.Conn.t()
   def new(conn, _params) do
     render(conn, "new.html")
   end
@@ -13,7 +14,8 @@ defmodule BytepackedWeb.UserResetPasswordController do
     if user = Accounts.get_user_by_email(email) do
       Accounts.deliver_user_reset_password_instructions(
         user,
-        &Routes.user_reset_password_url(conn, :edit, &1)
+        &Routes.user_reset_password_url(conn, :edit, &1),
+        conn.assigns.audit_context
       )
     end
 
@@ -33,7 +35,7 @@ defmodule BytepackedWeb.UserResetPasswordController do
   # Do not log in the user after reset password to avoid a
   # leaked token giving the user access to the account.
   def update(conn, %{"user" => user_params}) do
-    case Accounts.reset_user_password(conn.assigns.user, user_params) do
+    case Accounts.reset_user_password(conn.assigns.user, user_params, conn.assigns.audit_context) do
       {:ok, _} ->
         conn
         |> put_flash(:info, "Password reset successfully.")
@@ -48,11 +50,14 @@ defmodule BytepackedWeb.UserResetPasswordController do
     %{"token" => token} = conn.params
 
     if user = Accounts.get_user_by_reset_password_token(token) do
-      conn |> assign(:user, user) |> assign(:token, token)
+      conn
+      |> assign(:user, user)
+      |> assign(:token, token)
+      |> assign(:audit_context, %{conn.assigns.audit_context | user: user })
     else
       conn
       |> put_flash(:error, "Reset password link is invalid or it has expired.")
-      |> redirect(to: "/")
+      |> redirect(to: Routes.user_session_path(conn, :new))
       |> halt()
     end
   end
